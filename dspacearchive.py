@@ -85,12 +85,47 @@ class DspaceArchive:
     """
     Create a contents file that contains a lits of bitstreams, one per line. 
     """
+    """Commenting out original contents file creation
     def writeContentsFile(self, item, item_path):
         contents_file = open(os.path.join(item_path, b'contents'), "wb")
 
         files = item.getFiles()
         for index, file_name in enumerate(files):
             contents_file.write(self.normalizeUnicode(file_name))
+            if index < len(files):
+                contents_file.write(b"\n")
+
+        contents_file.close()
+    Remove these comments to reinstate"""
+
+    """
+        Create a contents file that contains a list of bitstreams, one per line. 
+        Appends Administrator permissions if an embargo date is present.
+        """
+    def writeContentsFile(self, item, item_path):
+        contents_file = open(os.path.join(item_path, b'contents'), "wb")
+
+        # 1. Check if the item contains a value for dc.date.embargo
+        attributes = item.getAttributes()
+        has_embargo = False
+        
+        if b'dc.date.embargo' in attributes:
+            embargo_value = attributes[b'dc.date.embargo']
+            # Ensure the value isn't just an empty string or whitespace
+            if embargo_value and embargo_value.strip():
+                has_embargo = True
+
+        # 2. Iterate through the bitstreams
+        files = item.getFiles()
+        for index, file_name in enumerate(files):
+            # Write the file name
+            contents_file.write(self.normalizeUnicode(file_name))
+            
+            # 3. Append the permissions string if an embargo is detected
+            if has_embargo:
+                contents_file.write(b"\tpermissions: -[r|w] 'Administrator'")
+                    
+            # Add a newline character
             if index < len(files):
                 contents_file.write(b"\n")
 
